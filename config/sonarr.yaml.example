@@ -1,0 +1,325 @@
+# Arr-Declarative-Manager (ADM) Configuration Example
+#
+# This file demonstrates the YAML configuration format for managing Sonarr instances.
+# Copy this to sonarr.yaml and customize for your setup.
+#
+# Documentation: https://github.com/yourusername/arr-declarative-manager
+
+# ==============================================================================
+# Sonarr Instances
+# ==============================================================================
+# You can manage multiple Sonarr instances (e.g., separate ones for TV vs. Anime)
+
+sonarr:
+  # ============================================================================
+  # Main Sonarr Instance
+  # ============================================================================
+  - name: "main-sonarr"
+    # Credentials can be:
+    # 1. Loaded from environment variables (recommended for secrets)
+    # 2. Inline values (not recommended for API keys)
+    base_url: "${SONARR_MAIN_URL}"  # e.g., http://localhost:8989
+    api_key: "${SONARR_MAIN_API_KEY}"
+
+    # ==========================================================================
+    # Custom Formats
+    # ==========================================================================
+    # Define custom formats with specifications (conditions)
+    custom_formats:
+      delete_unmanaged: false  # If true, delete formats not in this config
+
+      definitions:
+        - name: "BR-DISK"
+          include_custom_format_when_renaming: false
+          specifications:
+            - name: "BR-DISK"
+              implementation: "ReleaseTitleSpecification"
+              negate: false
+              required: true
+              fields:
+                value: "\\b(COMPLETE.*DISC|BDMV|ISO)\\b"
+
+        - name: "WEB-DL"
+          include_custom_format_when_renaming: false
+          specifications:
+            - name: "WEB-DL"
+              implementation: "SourceSpecification"
+              negate: false
+              required: true
+              fields:
+                value: 7  # WEB-DL source ID
+
+        - name: "x265 (HD)"
+          include_custom_format_when_renaming: true
+          specifications:
+            - name: "x265"
+              implementation: "ReleaseTitleSpecification"
+              negate: false
+              required: true
+              fields:
+                value: "\\b(x265|h265|hevc)\\b"
+            - name: "Not 4K"
+              implementation: "ResolutionSpecification"
+              negate: true
+              required: true
+              fields:
+                value: 8  # Not 4K
+
+    # ==========================================================================
+    # Quality Profiles
+    # ==========================================================================
+    quality_profiles:
+      delete_unmanaged: false
+
+      definitions:
+        - name: "HD-1080p"
+          upgrade_allowed: true
+          cutoff: "Bluray-1080p"
+          min_format_score: 0
+          cutoff_format_score: 0
+          min_upgrade_format_score: 1
+          
+          # Quality items define which qualities are allowed and in what order
+          # This is a simplified example - check Sonarr's API for exact structure
+          items:
+            - name: "Bluray-1080p"
+              allowed: true
+              quality:
+                id: 7
+                name: "Bluray-1080p"
+            - name: "WEB 1080p"
+              allowed: true
+              quality:
+                id: 3
+                name: "WEB 1080p"
+            - name: "HDTV-1080p"
+              allowed: true
+              quality:
+                id: 4
+                name: "HDTV-1080p"
+
+          # Custom format scores (positive = prefer, negative = avoid)
+          format_scores:
+            "BR-DISK": -10000  # Never want BR-DISK
+            "WEB-DL": 100      # Prefer WEB-DL
+            "x265 (HD)": 50    # Slightly prefer x265
+
+        - name: "Ultra-HD"
+          upgrade_allowed: true
+          cutoff: "Bluray-2160p"
+          items:
+            - name: "Bluray-2160p"
+              allowed: true
+              quality:
+                id: 16
+                name: "Bluray-2160p"
+            - name: "WEB 2160p"
+              allowed: true
+              quality:
+                id: 18
+                name: "WEB 2160p"
+          format_scores:
+            "BR-DISK": -10000
+
+    # ==========================================================================
+    # Quality Definitions
+    # ==========================================================================
+    # Set min/max/preferred file sizes (in GB) for each quality level
+    quality_definitions:
+      definitions:
+        - title: "HDTV-720p"
+          min_size: 2.0
+          max_size: 100.0
+          preferred_size: 35.0
+
+        - title: "HDTV-1080p"
+          min_size: 4.0
+          max_size: 100.0
+          preferred_size: 50.0
+
+        - title: "Bluray-1080p"
+          min_size: 6.0
+          max_size: 100.0
+          preferred_size: 60.0
+
+    # ==========================================================================
+    # Tags
+    # ==========================================================================
+    # Simple list of tag names
+    tags:
+      delete_unmanaged: false
+      definitions:
+        - "anime"
+        - "tv-show"
+        - "documentary"
+        - "kids"
+
+    # ==========================================================================
+    # Delay Profiles
+    # ==========================================================================
+    # Configure delays before grabbing releases
+    delay_profiles:
+      delete_unmanaged: false
+      definitions:
+        - preferred_protocol: "usenet"
+          usenet_delay: 0      # Minutes to wait for Usenet
+          torrent_delay: 1440  # Wait 24 hours for torrents
+          bypass_if_highest_quality: true
+          tags: []  # Empty = default profile for all untagged series
+          order: 1
+
+        - preferred_protocol: "torrent"
+          usenet_delay: 60
+          torrent_delay: 0
+          bypass_if_highest_quality: true
+          tags: ["anime"]  # Special profile for anime
+          order: 2
+
+    # ==========================================================================
+    # Indexers
+    # ==========================================================================
+    indexers:
+      delete_unmanaged: false
+      definitions:
+        - name: "NZBgeek"
+          implementation: "Newznab"
+          enable_rss: true
+          enable_automatic_search: true
+          enable_interactive_search: true
+          priority: 25
+          tags: []
+          fields:
+            baseUrl: "https://api.nzbgeek.info"
+            apiPath: "/api"
+            apiKey: "${NZBGEEK_API_KEY}"
+            categories: [5030, 5040]  # TV categories
+            removeYear: false
+
+        - name: "NZBFinder"
+          implementation: "Newznab"
+          enable_rss: true
+          enable_automatic_search: true
+          enable_interactive_search: true
+          priority: 20
+          tags: []
+          fields:
+            baseUrl: "https://nzbfinder.ws"
+            apiPath: "/api"
+            apiKey: "${NZBFINDER_API_KEY}"
+            categories: [5000]
+
+    # ==========================================================================
+    # Download Clients
+    # ==========================================================================
+    download_clients:
+      delete_unmanaged: false
+      definitions:
+        - name: "SABnzbd"
+          implementation: "Sabnzbd"
+          enable: true
+          priority: 1
+          remove_completed_downloads: true
+          remove_failed_downloads: true
+          tags: []
+          fields:
+            host: "localhost"
+            port: 8080
+            apiKey: "${SABNZBD_API_KEY}"
+            tvCategory: "tv"
+            recentTvPriority: 0  # Default priority
+            olderTvPriority: -1  # Lower priority for older episodes
+
+        - name: "qBittorrent"
+          implementation: "QBittorrent"
+          enable: true
+          priority: 2
+          remove_completed_downloads: true
+          remove_failed_downloads: true
+          tags: ["anime"]  # Only use for anime
+          fields:
+            host: "localhost"
+            port: 8090
+            username: "${QBITTORRENT_USERNAME}"
+            password: "${QBITTORRENT_PASSWORD}"
+            tvCategory: "tv"
+            recentTvPriority: 0
+            olderTvPriority: 0
+
+    # ==========================================================================
+    # Naming Configuration
+    # ==========================================================================
+    # Episode and folder naming formats
+    naming:
+      rename_episodes: true
+      replace_illegal_characters: true
+      
+      # Standard episode format (e.g., "The Series (2023) - S01E05 - Episode Title [WEB-DL 1080p][x264 DTS].mkv")
+      standard_episode_format: "{Series TitleYear} - S{season:00}E{episode:00} - {Episode CleanTitle} [{Preferred Words }{Quality Full}]{[MediaInfo VideoDynamicRangeType]}{[Mediainfo AudioCodec}{ Mediainfo AudioChannels]}{MediaInfo AudioLanguages}{-Release Group}"
+      
+      # Daily episode format (for daily shows)
+      daily_episode_format: "{Series TitleYear} - {Air-Date} - {Episode CleanTitle} [{Preferred Words }{Quality Full}]{[MediaInfo VideoDynamicRangeType]}{[Mediainfo AudioCodec}{ Mediainfo AudioChannels]}{MediaInfo AudioLanguages}{-Release Group}"
+      
+      # Anime episode format
+      anime_episode_format: "{Series TitleYear} - S{season:00}E{episode:00} - {absolute:000} - {Episode CleanTitle} [{Preferred Words }{Quality Full}]{[MediaInfo VideoDynamicRangeType]}[{MediaInfo VideoBitDepth}bit]{[MediaInfo VideoCodec]}[{Mediainfo AudioCodec} { Mediainfo AudioChannels}]{MediaInfo AudioLanguages}{-Release Group}"
+      
+      # Folder formats
+      series_folder_format: "{Series TitleYear} [imdbid-{ImdbId}]"
+      season_folder_format: "Season {season:00}"
+      specials_folder_format: "Specials"
+      
+      # Multi-episode style: 0=Extend, 1=Duplicate, 2=Repeat, 3=Scene, 4=Range, 5=Prefixed Range
+      multi_episode_style: 0
+
+    # ==========================================================================
+    # Media Management Configuration
+    # ==========================================================================
+    media_management:
+      auto_unmonitor_previously_downloaded_episodes: false
+      
+      # Recycle bin for deleted files
+      recycle_bin: "/data/sonarr/recycle"
+      recycle_bin_cleanup_days: 7
+      
+      # Propers and repacks handling
+      download_propers_and_repacks: "preferAndUpgrade"  # or "doNotUpgrade"
+      
+      # Folder management
+      create_empty_series_folders: false
+      delete_empty_folders: true
+      
+      # File date: "none", "cinemas", "localAirDate", "utcAirDate"
+      file_date: "none"
+      
+      # Rescan after refresh: "always", "afterManual", "never"
+      rescan_after_refresh: "always"
+      
+      # Linux permissions
+      set_permissions_linux: false
+      chmod_folder: "755"
+      chown_group: null
+      
+      # Import settings
+      skip_free_space_check_when_importing: false
+      minimum_free_space_when_importing: 100  # MB
+      copy_using_hardlinks: true
+      import_extra_files: true
+      extra_file_extensions: "srt,nfo"
+
+  # ============================================================================
+  # Optional: Anime Sonarr Instance
+  # ============================================================================
+  # Uncomment to manage a separate Sonarr instance for anime
+  #
+  # - name: "anime-sonarr"
+  #   base_url: "${SONARR_ANIME_URL}"
+  #   api_key: "${SONARR_ANIME_API_KEY}"
+  #
+  #   quality_profiles:
+  #     delete_unmanaged: false
+  #     definitions:
+  #       - name: "Anime HD"
+  #         upgrade_allowed: true
+  #         cutoff: "Bluray-1080p"
+  #         items: [...]
+  #
+  #   # ... other configuration sections ...
