@@ -1,20 +1,36 @@
-"""Mapper for Download Clients."""
+"""Parameterized mapper for Download Clients - works with both Sonarr and Radarr."""
 
-from typing import Any
+from typing import Any, Generic, TypeVar
 
-from sonarr_api.models.download_client_resource import DownloadClientResource
+from src.shared.mappers.base import ResourceMapper
+from src.shared.schemas import DownloadClientDef
 
-from src.core.config_schema import DownloadClientDef
-from src.mapping.base import ResourceMapper
+# Generic type for API model
+TDownloadClientModel = TypeVar("TDownloadClientModel")
 
 
-class DownloadClientMapper(ResourceMapper[DownloadClientResource, DownloadClientDef]):
-    """Maps download client definitions to API models."""
+class DownloadClientMapper(
+    ResourceMapper[TDownloadClientModel, DownloadClientDef], Generic[TDownloadClientModel]
+):
+    """
+    Maps download client definitions to API models.
+    
+    Parameterized by API model type to support both Sonarr and Radarr.
+    """
 
-    def to_api_model(self, yaml_def: DownloadClientDef, **context) -> DownloadClientResource:
+    def __init__(self, model_class: type[TDownloadClientModel]):
+        """
+        Initialize with specific API model class.
+        
+        Args:
+            model_class: DownloadClientResource class
+        """
+        self.model_class = model_class
+
+    def to_api_model(self, yaml_def: DownloadClientDef, **context) -> TDownloadClientModel:
         """
         Convert YAML download client definition to API model.
-
+        
         Context should include:
         - tag_map: dict[str, int] - Maps tag names to IDs
         """
@@ -23,7 +39,7 @@ class DownloadClientMapper(ResourceMapper[DownloadClientResource, DownloadClient
         # Convert tag names to IDs
         tag_ids = [tag_map[tag_name] for tag_name in yaml_def.tags if tag_name in tag_map]
 
-        return DownloadClientResource(
+        return self.model_class(
             name=yaml_def.name,
             implementation=yaml_def.implementation,
             enable=yaml_def.enable,
@@ -34,7 +50,7 @@ class DownloadClientMapper(ResourceMapper[DownloadClientResource, DownloadClient
             fields=yaml_def.fields,
         )
 
-    def from_api_model(self, api_model: DownloadClientResource) -> dict[str, Any]:
+    def from_api_model(self, api_model: TDownloadClientModel) -> dict[str, Any]:
         """Convert API model to dict for comparison."""
         return {
             "id": api_model.id,
@@ -48,7 +64,7 @@ class DownloadClientMapper(ResourceMapper[DownloadClientResource, DownloadClient
             "fields": api_model.fields,
         }
 
-    def get_match_key(self, item: dict[str, Any] | DownloadClientResource) -> str:
+    def get_match_key(self, item: dict[str, Any] | TDownloadClientModel) -> str:
         """Get the name field for matching."""
         if isinstance(item, dict):
             return item["name"]

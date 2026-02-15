@@ -1,17 +1,17 @@
-"""Mapper for Naming Configuration."""
+"""Mapper for Sonarr Naming Configuration."""
 
 from typing import Any
 
 from sonarr_api.models.naming_config_resource import NamingConfigResource
 
-from src.core.config_schema import NamingConfig
-from src.mapping.base import ResourceMapper
+from src.plugins.sonarr.schema import SonarrNamingConfig
+from src.shared.mappers.base import ResourceMapper
 
 
-class NamingConfigMapper(ResourceMapper[NamingConfigResource, NamingConfig]):
+class NamingConfigMapper(ResourceMapper[NamingConfigResource, SonarrNamingConfig]):
     """Maps naming configuration to API models."""
 
-    def to_api_model(self, yaml_def: NamingConfig, **context) -> NamingConfigResource:
+    def to_api_model(self, yaml_def: SonarrNamingConfig, **context) -> NamingConfigResource:
         """
         Convert YAML naming config to API model.
 

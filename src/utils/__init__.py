@@ -1,1 +1,1 @@
-"""Utility modules for ADM."""
+"""Utility modules for Configarr."""

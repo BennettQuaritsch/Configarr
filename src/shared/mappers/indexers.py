@@ -1,20 +1,34 @@
-"""Mapper for Indexers."""
+"""Parameterized mapper for Indexers - works with both Sonarr and Radarr."""
 
-from typing import Any
+from typing import Any, Generic, TypeVar
 
-from sonarr_api.models.indexer_resource import IndexerResource
+from src.shared.mappers.base import ResourceMapper
+from src.shared.schemas import IndexerDef
 
-from src.core.config_schema import IndexerDef
-from src.mapping.base import ResourceMapper
+# Generic type for API model
+TIndexerModel = TypeVar("TIndexerModel")
 
 
-class IndexerMapper(ResourceMapper[IndexerResource, IndexerDef]):
-    """Maps indexer definitions to API models."""
+class IndexerMapper(ResourceMapper[TIndexerModel, IndexerDef], Generic[TIndexerModel]):
+    """
+    Maps indexer definitions to API models.
+    
+    Parameterized by API model type to support both Sonarr and Radarr.
+    """
 
-    def to_api_model(self, yaml_def: IndexerDef, **context) -> IndexerResource:
+    def __init__(self, model_class: type[TIndexerModel]):
+        """
+        Initialize with specific API model class.
+        
+        Args:
+            model_class: IndexerResource class
+        """
+        self.model_class = model_class
+
+    def to_api_model(self, yaml_def: IndexerDef, **context) -> TIndexerModel:
         """
         Convert YAML indexer definition to API model.
-
+        
         Context should include:
         - tag_map: dict[str, int] - Maps tag names to IDs
         """
@@ -23,7 +37,7 @@ class IndexerMapper(ResourceMapper[IndexerResource, IndexerDef]):
         # Convert tag names to IDs
         tag_ids = [tag_map[tag_name] for tag_name in yaml_def.tags if tag_name in tag_map]
 
-        return IndexerResource(
+        return self.model_class(
             name=yaml_def.name,
             implementation=yaml_def.implementation,
             enable_rss=yaml_def.enable_rss,
@@ -35,7 +49,7 @@ class IndexerMapper(ResourceMapper[IndexerResource, IndexerDef]):
             fields=yaml_def.fields,
         )
 
-    def from_api_model(self, api_model: IndexerResource) -> dict[str, Any]:
+    def from_api_model(self, api_model: TIndexerModel) -> dict[str, Any]:
         """Convert API model to dict for comparison."""
         return {
             "id": api_model.id,
@@ -50,7 +64,7 @@ class IndexerMapper(ResourceMapper[IndexerResource, IndexerDef]):
             "fields": api_model.fields,
         }
 
-    def get_match_key(self, item: dict[str, Any] | IndexerResource) -> str:
+    def get_match_key(self, item: dict[str, Any] | TIndexerModel) -> str:
         """Get the name field for matching."""
         if isinstance(item, dict):
             return item["name"]

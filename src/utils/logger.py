@@ -1,4 +1,4 @@
-"""Structured logging configuration for ADM."""
+"""Structured logging configuration for Configarr."""
 
 import logging
 import sys
@@ -77,10 +77,10 @@ def setup_logger(name: str = "adm", level: str = "INFO", verbose: bool = False) 
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
     """
-    Get a logger instance. If no name provided, returns the root ADM logger.
+    Get a logger instance. If no name provided, returns the root Configarr logger.
 
     Args:
-        name: Optional logger name (will be prefixed with 'adm.')
+        name: Optional logger name (will be prefixed with 'configarr.')
 
     Returns:
         Logger instance

@@ -1,20 +1,20 @@
-"""Mapper for Media Management Configuration."""
+"""Mapper for Sonarr Media Management Configuration."""
 
 from typing import Any
 
 from sonarr_api.models.media_management_config_resource import MediaManagementConfigResource
 
-from src.core.config_schema import MediaManagementConfig
-from src.mapping.base import ResourceMapper
+from src.plugins.sonarr.schema import SonarrMediaManagementConfig
+from src.shared.mappers.base import ResourceMapper
 
 
 class MediaManagementConfigMapper(
-    ResourceMapper[MediaManagementConfigResource, MediaManagementConfig]
+    ResourceMapper[MediaManagementConfigResource, SonarrMediaManagementConfig]
 ):
     """Maps media management configuration to API models."""
 
     def to_api_model(
-        self, yaml_def: MediaManagementConfig, **context
+        self, yaml_def: SonarrMediaManagementConfig, **context
     ) -> MediaManagementConfigResource:
         """
         Convert YAML media management config to API model.

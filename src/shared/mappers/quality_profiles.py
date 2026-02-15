@@ -1,21 +1,44 @@
-"""Mapper for Quality Profiles."""
+"""Parameterized mapper for Quality Profiles - works with both Sonarr and Radarr."""
 
-from typing import Any
+from typing import Any, Generic, TypeVar
 
-from sonarr_api.models.profile_format_item_resource import ProfileFormatItemResource
-from sonarr_api.models.quality_profile_resource import QualityProfileResource
+from src.shared.mappers.base import ResourceMapper
+from src.shared.schemas import QualityProfileDef
 
-from src.core.config_schema import QualityProfileDef
-from src.mapping.base import ResourceMapper
+# Generic types for API models
+TQualityProfileModel = TypeVar("TQualityProfileModel")
+TProfileFormatItemModel = TypeVar("TProfileFormatItemModel")
 
 
-class QualityProfileMapper(ResourceMapper[QualityProfileResource, QualityProfileDef]):
-    """Maps quality profile definitions to API models."""
+class QualityProfileMapper(
+    ResourceMapper[TQualityProfileModel, QualityProfileDef],
+    Generic[TQualityProfileModel, TProfileFormatItemModel],
+):
+    """
+    Maps quality profile definitions to API models.
+    
+    Parameterized by API model types to support both Sonarr and Radarr.
+    """
 
-    def to_api_model(self, yaml_def: QualityProfileDef, **context) -> QualityProfileResource:
+    def __init__(
+        self,
+        profile_model_class: type[TQualityProfileModel],
+        format_item_model_class: type[TProfileFormatItemModel],
+    ):
+        """
+        Initialize with specific API model classes.
+        
+        Args:
+            profile_model_class: QualityProfileResource class
+            format_item_model_class: ProfileFormatItemResource class
+        """
+        self.profile_model_class = profile_model_class
+        self.format_item_model_class = format_item_model_class
+
+    def to_api_model(self, yaml_def: QualityProfileDef, **context) -> TQualityProfileModel:
         """
         Convert YAML quality profile definition to API model.
-
+        
         Context should include:
         - custom_format_map: dict[str, int] - Maps CF names to IDs
         - cutoff_id: int - Quality ID for cutoff
@@ -25,23 +48,23 @@ class QualityProfileMapper(ResourceMapper[QualityProfileResource, QualityProfile
 
         # Convert format_scores dict to ProfileFormatItemResource list
         format_items = [
-            ProfileFormatItemResource(format=custom_format_map.get(cf_name), score=score)
+            self.format_item_model_class(format=custom_format_map.get(cf_name), score=score)
             for cf_name, score in yaml_def.format_scores.items()
             if cf_name in custom_format_map
         ]
 
-        return QualityProfileResource(
+        return self.profile_model_class(
             name=yaml_def.name,
             upgrade_allowed=yaml_def.upgrade_allowed,
             cutoff=cutoff_id,
-            items=yaml_def.items,  # Pass through as-is (already in correct format)
+            items=yaml_def.items,
             min_format_score=yaml_def.min_format_score,
             cutoff_format_score=yaml_def.cutoff_format_score,
             min_upgrade_format_score=yaml_def.min_upgrade_format_score,
             format_items=format_items,
         )
 
-    def from_api_model(self, api_model: QualityProfileResource) -> dict[str, Any]:
+    def from_api_model(self, api_model: TQualityProfileModel) -> dict[str, Any]:
         """Convert API model to dict for comparison."""
         return {
             "id": api_model.id,
@@ -58,7 +81,7 @@ class QualityProfileMapper(ResourceMapper[QualityProfileResource, QualityProfile
             ],
         }
 
-    def get_match_key(self, item: dict[str, Any] | QualityProfileResource) -> str:
+    def get_match_key(self, item: dict[str, Any] | TQualityProfileModel) -> str:
         """Get the name field for matching."""
         if isinstance(item, dict):
             return item["name"]

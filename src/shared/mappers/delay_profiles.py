@@ -1,20 +1,36 @@
-"""Mapper for Delay Profiles."""
+"""Parameterized mapper for Delay Profiles - works with both Sonarr and Radarr."""
 
-from typing import Any
+from typing import Any, Generic, TypeVar
 
-from sonarr_api.models.delay_profile_resource import DelayProfileResource
+from src.shared.mappers.base import ResourceMapper
+from src.shared.schemas import DelayProfileDef
 
-from src.core.config_schema import DelayProfileDef
-from src.mapping.base import ResourceMapper
+# Generic type for API model
+TDelayProfileModel = TypeVar("TDelayProfileModel")
 
 
-class DelayProfileMapper(ResourceMapper[DelayProfileResource, DelayProfileDef]):
-    """Maps delay profile definitions to API models."""
+class DelayProfileMapper(
+    ResourceMapper[TDelayProfileModel, DelayProfileDef], Generic[TDelayProfileModel]
+):
+    """
+    Maps delay profile definitions to API models.
+    
+    Parameterized by API model type to support both Sonarr and Radarr.
+    """
 
-    def to_api_model(self, yaml_def: DelayProfileDef, **context) -> DelayProfileResource:
+    def __init__(self, model_class: type[TDelayProfileModel]):
+        """
+        Initialize with specific API model class.
+        
+        Args:
+            model_class: DelayProfileResource class
+        """
+        self.model_class = model_class
+
+    def to_api_model(self, yaml_def: DelayProfileDef, **context) -> TDelayProfileModel:
         """
         Convert YAML delay profile definition to API model.
-
+        
         Context should include:
         - tag_map: dict[str, int] - Maps tag names to IDs
         """
@@ -27,13 +43,13 @@ class DelayProfileMapper(ResourceMapper[DelayProfileResource, DelayProfileDef]):
         protocol_map = {
             "usenet": "usenet",
             "torrent": "torrent",
-            "both": "usenetPrefer",  # or "torrentPrefer" - default to usenet
+            "both": "usenetPrefer",
         }
         preferred_protocol = protocol_map.get(
             yaml_def.preferred_protocol.lower(), "usenetPrefer"
         )
 
-        return DelayProfileResource(
+        return self.model_class(
             preferred_protocol=preferred_protocol,
             usenet_delay=yaml_def.usenet_delay,
             torrent_delay=yaml_def.torrent_delay,
@@ -42,7 +58,7 @@ class DelayProfileMapper(ResourceMapper[DelayProfileResource, DelayProfileDef]):
             order=yaml_def.order,
         )
 
-    def from_api_model(self, api_model: DelayProfileResource) -> dict[str, Any]:
+    def from_api_model(self, api_model: TDelayProfileModel) -> dict[str, Any]:
         """Convert API model to dict for comparison."""
         return {
             "id": api_model.id,
@@ -54,10 +70,10 @@ class DelayProfileMapper(ResourceMapper[DelayProfileResource, DelayProfileDef]):
             "order": api_model.order,
         }
 
-    def get_match_key(self, item: dict[str, Any] | DelayProfileResource) -> str:
+    def get_match_key(self, item: dict[str, Any] | TDelayProfileModel) -> str:
         """
         Delay profiles don't have names, so we match by tag combination.
-
+        
         Returns a string representation of sorted tag IDs.
         """
         if isinstance(item, dict):

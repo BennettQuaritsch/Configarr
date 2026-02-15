@@ -1,7 +1,7 @@
-# agents.md - Arr-Declarative-Manager (ADM)
+# agents.md - Configarr
 
 ## Project Overview
-**Name:** Arr-Declarative-Manager (ADM)
+**Name:** Configarr
 **Purpose:** A declarative configuration-as-code tool for the "Arr" stack (Sonarr, Radarr, Prowlarr). It reconciles a local YAML configuration with the live state of the servers via their REST APIs.
 **Guiding Principle:** The YAML file is the "Source of Truth." If it's in the YAML, it should be on the server. If it's on the server but not in the YAML, the tool should (optionally) flag or remove it.
 
@@ -22,8 +22,10 @@
 /
 ├── config/               # User-facing YAML files
 ├── src/
-│   ├── generated/        # API clients (DO NOT MANUALLY EDIT)
-│   ├── mapping/          # Transforms YAML data -> API Model objects
+│   ├── plugins/          # Plugin system for multi-arr support
+│   │   └── sonarr/       # Sonarr plugin
+│   │       └── generated/ # API clients (DO NOT MANUALLY EDIT)
+│   ├── shared/           # Shared mappers and schemas
 │   ├── core/             # Reconciliation loop and diffing logic
 │   ├── utils/            # Shared helpers (logging, auth, env)
 │   └── main.py           # CLI Entry point

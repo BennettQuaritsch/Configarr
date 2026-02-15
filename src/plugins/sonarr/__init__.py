@@ -1,0 +1,1 @@
+"""Sonarr plugin for Configarr."""

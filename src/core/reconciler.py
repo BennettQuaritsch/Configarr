@@ -3,7 +3,7 @@
 from typing import Any, Callable, Generic, Optional, TypeVar
 
 from src.core.diff import ChangeSet, compute_diff
-from src.mapping.base import ResourceMapper
+from src.shared.mappers.base import ResourceMapper
 from src.utils.logger import get_logger
 
 TApiModel = TypeVar("TApiModel")

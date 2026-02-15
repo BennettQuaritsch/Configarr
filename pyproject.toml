@@ -1,5 +1,5 @@
 [project]
-name = "arr-declarative-manager"
+name = "configarr"
 version = "0.1.0"
 description = "Declarative configuration-as-code tool for the Arr stack (Sonarr, Radarr, Prowlarr)"
 authors = [
@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-adm = "src.main:main"
+configarr = "src.main:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]
